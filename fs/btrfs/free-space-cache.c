@@ -1798,7 +1798,7 @@ find_free_space(struct btrfs_free_space_ctl *ctl, u64 *offset, u64 *bytes,
 	if (!ctl->free_space_offset.rb_node)
 		goto out;
 
-	entry = tree_search_offset(ctl, offset_to_bitmap(ctl, *offset), 0, 1);
+	entry = tree_search_offset(ctl, *offset, 0, 1);
 	if (!entry)
 		goto out;
 
