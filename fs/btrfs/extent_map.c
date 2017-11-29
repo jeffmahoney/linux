@@ -386,6 +386,41 @@ __lookup_extent_mapping(struct extent_map_tree *tree,
 	return em;
 }
 
+struct extent_map *
+search_closest_valid_extent_mapping(struct extent_map_tree *tree, u64 start)
+{
+	struct extent_map *em = NULL;
+	struct rb_node *node = tree->map.rb_node;
+	struct rb_node *next = NULL;
+
+	node = __tree_search(&tree->map, start, NULL, &next);
+	if (!node) {
+		if (next)
+			node = next;
+		else
+			return NULL;
+	}
+
+	em = rb_entry(node, struct extent_map, rb_node);
+
+	/*
+	 * We want the last extent mapping with a valid allocation, so
+	 * back up until we find one.
+	 */
+	while (em && em->block_start >= EXTENT_MAP_LAST_BYTE) {
+		node = rb_prev(&em->rb_node);
+		if (node)
+			em = rb_entry(node, struct extent_map, rb_node);
+		else
+			em = NULL;
+	}
+
+	if (em)
+		refcount_inc(&em->refs);
+
+	return em;
+}
+
 /**
  * lookup_extent_mapping - lookup extent_map
  * @tree:	tree to lookup in

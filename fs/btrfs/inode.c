@@ -906,24 +906,10 @@ static u64 get_extent_allocation_hint(struct inode *inode, u64 start,
 	u64 alloc_hint = 0;
 
 	read_lock(&em_tree->lock);
-	em = search_extent_mapping(em_tree, start, num_bytes);
+	em = search_closest_valid_extent_mapping(em_tree, start);
 	if (em) {
-		/*
-		 * if block start isn't an actual block number then find the
-		 * first block in this inode and use that as a hint.  If that
-		 * block is also bogus then just don't worry about it.
-		 */
-		if (em->block_start >= EXTENT_MAP_LAST_BYTE) {
-			free_extent_map(em);
-			em = search_extent_mapping(em_tree, 0, 0);
-			if (em && em->block_start < EXTENT_MAP_LAST_BYTE)
-				alloc_hint = em->block_start;
-			if (em)
-				free_extent_map(em);
-		} else {
-			alloc_hint = em->block_start;
-			free_extent_map(em);
-		}
+		alloc_hint = em->block_start + (start - em->start);
+		free_extent_map(em);
 	}
 	read_unlock(&em_tree->lock);
 
