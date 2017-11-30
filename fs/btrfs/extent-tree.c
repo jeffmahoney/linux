@@ -7584,6 +7584,7 @@ search:
 	down_read(&space_info->groups_sem);
 	list_for_each_entry(block_group, &space_info->block_groups[index],
 			    list) {
+		u64 alignment;
 		u64 offset;
 		int cached;
 
@@ -7782,8 +7783,14 @@ unclustered_alloc:
 			spin_unlock(&ctl->tree_lock);
 		}
 
+		if (search_start == hint_byte)
+			alignment = fs_info->sectorsize;
+		else
+			alignment = block_group->full_stripe_len;
+
 		offset = btrfs_find_space_for_alloc(block_group, search_start,
 						    num_bytes, empty_size,
+						    alignment,
 						    &max_extent_size);
 		/*
 		 * If we didn't find a chunk, and we haven't failed on this

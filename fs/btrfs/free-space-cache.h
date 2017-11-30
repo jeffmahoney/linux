@@ -104,7 +104,7 @@ void btrfs_remove_free_space_cache(struct btrfs_block_group_cache
 				     *block_group);
 u64 btrfs_find_space_for_alloc(struct btrfs_block_group_cache *block_group,
 			       u64 offset, u64 bytes, u64 empty_size,
-			       u64 *max_extent_size);
+			       u64 alignment, u64 *max_extent_size);
 u64 btrfs_find_ino_for_alloc(struct btrfs_root *fs_root);
 void btrfs_dump_free_space(struct btrfs_block_group_cache *block_group,
 			   u64 bytes);

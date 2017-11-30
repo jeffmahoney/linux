@@ -2595,7 +2595,7 @@ void btrfs_remove_free_space_cache(struct btrfs_block_group_cache *block_group)
 
 u64 btrfs_find_space_for_alloc(struct btrfs_block_group_cache *block_group,
 			       u64 offset, u64 bytes, u64 empty_size,
-			       u64 *max_extent_size)
+			       u64 alignment, u64 *max_extent_size)
 {
 	struct btrfs_free_space_ctl *ctl = block_group->free_space_ctl;
 	struct btrfs_free_space *entry = NULL;
@@ -2605,8 +2605,8 @@ u64 btrfs_find_space_for_alloc(struct btrfs_block_group_cache *block_group,
 	u64 align_gap_len = 0;
 
 	spin_lock(&ctl->tree_lock);
-	entry = find_free_space(ctl, &offset, &bytes_search,
-				block_group->full_stripe_len, max_extent_size);
+	entry = find_free_space(ctl, &offset, &bytes_search, alignment,
+				max_extent_size);
 	if (!entry)
 		goto out;
 
