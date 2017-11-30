@@ -2660,10 +2660,31 @@ u64 btrfs_find_space_for_alloc(struct btrfs_block_group_cache *block_group,
 			spin_lock(&ctl->tree_lock);
 		}
 
-		entry->offset = offset + bytes;
-		WARN_ON(entry->bytes < bytes + align_gap_len);
+		/*
+		 * This indicates a bug in find_free_space, but if we
+		 * continue here, we'll re-link a free space entry with
+		 * enormous size and also end up passing back an extent
+		 * that crosses into already-allocated space.
+		 */
+		if (WARN_ON(entry->bytes < bytes + align_gap_len)) {
+			entry->offset = entry->offset + align_gap_len;
+			entry->bytes -= align_gap_len;
 
+			/*
+			 * There's nothing to do here if we fail.  We have
+			 * a corrupted rbtree if we have two entries at
+			 * the same offset.  We're already failing the
+			 * request and will have issued a separate warning
+			 * already.
+			 */
+			link_free_space(ctl, entry);
+			ret = 0;
+			goto out;
+		}
+
+		entry->offset = offset + bytes;
 		entry->bytes -= bytes + align_gap_len;
+
 		if (!entry->bytes)
 			kmem_cache_free(btrfs_free_space_cachep, entry);
 		else
