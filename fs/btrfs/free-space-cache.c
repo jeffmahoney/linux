@@ -1803,6 +1803,9 @@ find_free_space(struct btrfs_free_space_ctl *ctl, u64 *offset, u64 *bytes,
 		goto out;
 
 	for (node = &entry->offset_index; node; node = rb_next(node)) {
+		u64 entry_offset;
+		u64 entry_bytes;
+
 		entry = rb_entry(node, struct btrfs_free_space, offset_index);
 		if (entry->bytes < *bytes) {
 			if (entry->bytes > *max_extent_size)
@@ -1810,22 +1813,41 @@ find_free_space(struct btrfs_free_space_ctl *ctl, u64 *offset, u64 *bytes,
 			continue;
 		}
 
+		/*
+		 * If our hint falls within this entry, we want to try
+		 * to place it at the given offset.  Hints mean that
+		 * we are writing to an established file.  It might be
+		 * writing into a hole, in which case we don't want to
+		 * automatically pick the first available range within
+		 * the entry.  We'll split the free space record.  For
+		 * these purposes, the space at the beginning of the
+		 * free space entry before our offset is considered
+		 * alignment.
+		 */
+		if (*offset >= entry->offset &&
+		    *offset < entry->offset + entry->bytes)
+			entry_offset = *offset;
+		else
+			entry_offset = entry->offset;
+
+		entry_bytes = entry->bytes - (entry_offset - entry->offset);
+
 		/* make sure the space returned is big enough
 		 * to match our requested alignment
 		 */
 		if (*bytes >= align) {
-			tmp = entry->offset - ctl->start + align - 1;
+			tmp = entry_offset - ctl->start + align - 1;
 			tmp = div64_u64(tmp, align);
 			tmp = tmp * align + ctl->start;
-			align_off = tmp - entry->offset;
+			align_off = tmp - entry_offset;
 		} else {
 			align_off = 0;
-			tmp = entry->offset;
+			tmp = entry_offset;
 		}
 
-		if (entry->bytes < *bytes + align_off) {
-			if (entry->bytes > *max_extent_size)
-				*max_extent_size = entry->bytes;
+		if (entry_bytes < *bytes + align_off) {
+			if (entry_bytes > *max_extent_size)
+				*max_extent_size = entry_bytes;
 			continue;
 		}
 
@@ -1844,7 +1866,7 @@ find_free_space(struct btrfs_free_space_ctl *ctl, u64 *offset, u64 *bytes,
 		}
 
 		*offset = tmp;
-		*bytes = entry->bytes - align_off;
+		*bytes = entry_bytes - align_off;
 		return entry;
 	}
 out:
