@@ -2623,8 +2623,6 @@ u64 btrfs_find_space_for_alloc(struct btrfs_block_group_cache *block_group,
 	struct btrfs_free_space *entry = NULL;
 	u64 bytes_search = bytes + empty_size;
 	u64 ret = 0;
-	u64 align_gap = 0;
-	u64 align_gap_len = 0;
 
 	spin_lock(&ctl->tree_lock);
 	entry = find_free_space(ctl, &offset, &bytes_search, alignment,
@@ -2638,9 +2636,29 @@ u64 btrfs_find_space_for_alloc(struct btrfs_block_group_cache *block_group,
 		if (!entry->bytes)
 			free_bitmap(ctl, entry);
 	} else {
+		u64 align_gap_len = offset - entry->offset;
+
 		unlink_free_space(ctl, entry);
-		align_gap_len = offset - entry->offset;
-		align_gap = entry->offset;
+
+		/* We'll need another free space entry */
+		if (align_gap_len) {
+			int err;
+
+			spin_unlock(&ctl->tree_lock);
+
+			/*
+			 * If we fail, we can just fall back to the start
+			 * of the extent instead of failing the allocation.
+			 */
+			err = __btrfs_add_free_space(block_group->fs_info, ctl,
+						     entry->offset,
+						     align_gap_len);
+			if (err) {
+				offset = entry->offset;
+				align_gap_len = 0;
+			}
+			spin_lock(&ctl->tree_lock);
+		}
 
 		entry->offset = offset + bytes;
 		WARN_ON(entry->bytes < bytes + align_gap_len);
@@ -2653,10 +2671,6 @@ u64 btrfs_find_space_for_alloc(struct btrfs_block_group_cache *block_group,
 	}
 out:
 	spin_unlock(&ctl->tree_lock);
-
-	if (align_gap_len)
-		__btrfs_add_free_space(block_group->fs_info, ctl,
-				       align_gap, align_gap_len);
 	return ret;
 }
 
