@@ -745,6 +745,7 @@ int btrfs_add_delayed_tree_ref(struct btrfs_trans_handle *trans,
 			kmem_cache_free(btrfs_delayed_ref_head_cachep, head_ref);
 			return -ENOMEM;
 		}
+		record->trans = trans;
 	}
 
 	if (parent)
@@ -832,6 +833,7 @@ int btrfs_add_delayed_data_ref(struct btrfs_trans_handle *trans,
 					head_ref);
 			return -ENOMEM;
 		}
+		record->trans = trans;
 	}
 
 	init_delayed_ref_head(head_ref, record, bytenr, num_bytes, ref_root,
