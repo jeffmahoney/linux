@@ -220,6 +220,12 @@ int btrfs_qgroup_trace_subtree_swap(struct btrfs_trans_handle *trans,
 				struct extent_buffer *dst_parent, int dst_slot,
 				u64 last_snapshot);
 int btrfs_qgroup_account_extents(struct btrfs_trans_handle *trans);
+/* for tests/qgroup-tests.c */
+int btrfs_qgroup_account_extent(struct btrfs_trans_handle *trans,
+				u64 bytenr, u64 num_bytes,
+				struct ulist *old_roots,
+				struct ulist *new_roots);
+
 int btrfs_run_qgroups(struct btrfs_trans_handle *trans);
 int btrfs_qgroup_inherit(struct btrfs_trans_handle *trans, u64 srcid,
 			 u64 objectid, struct btrfs_qgroup_inherit *inherit);
