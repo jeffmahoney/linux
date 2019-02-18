@@ -77,7 +77,7 @@ struct preftree {
 	struct rb_root_cached root;
 	unsigned int count;
 };
-#define PREFTREE_INIT	{ .root = RB_ROOT, .count = 0 }
+#define PREFTREE_INIT	{ .root = RB_ROOT_CACHED, .count = 0 }
 
 void prelim_release(struct preftree *preftree);
 struct share_check;
